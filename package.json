@@ -1,0 +1,24 @@
+{
+  "name": "exif-photo-frame",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "vue": "^3.4.21"
+  },
+  "devDependencies": {
+    "@vicons/material": "^0.12.0",
+    "@vicons/utils": "^0.1.4",
+    "@vitejs/plugin-vue": "^5.0.4",
+    "naive-ui": "^2.38.2",
+    "typescript": "^5.2.2",
+    "vfonts": "^0.0.3",
+    "vite": "^5.2.0",
+    "vue-tsc": "^2.0.6"
+  }
+}
