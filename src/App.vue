@@ -1,42 +1,90 @@
 <script setup lang="ts">
 import { NAlert } from 'naive-ui'
 import { reactive } from 'vue'
+import { Tags } from 'exifreader'
+import asyncPool from 'tiny-async-pool'
 import AddPhoto from './components/AddPhoto.vue'
 import FooterInformation from './components/FooterInformation.vue'
 import ProcessList from './components/ProcessList.vue'
+import getEXIF from './util/exif'
 
 type StateType = {
-  errorIsNotImage: boolean
+  errorFileNotSupport: boolean
   hideAppPhoto: boolean
   processList: ProcessItem[]
 }
 
 export type ProcessItem = {
   image: File
-  status: 'waiting' | 'processing' | 'done'
+  status: 'waiting' | 'processing' | 'done' | 'failed'
+  exif: Tags | null
 }
 
 const state = reactive<StateType>({
-  errorIsNotImage: false,
+  errorFileNotSupport: false,
   hideAppPhoto: false,
   processList: [],
 })
 
-const onErrorIsNotImageAlertLeave = () => {
-  state.errorIsNotImage = false
+const getAllExif = async (list: ProcessItem[]) => {
+  return Promise.all(list.map(item => getEXIF(item.image)))
 }
 
-const onUploadImage = (files: FileList) => {
+const start = async (list: ProcessItem[]) => {
+  const allExif = await getAllExif(list)
+  allExif.forEach((exif, index) => {
+    if (typeof exif === 'string') {
+      state.processList[index].status = 'failed'
+    } else {
+      state.processList[index].exif = exif
+    }
+  })
+  if (import.meta.env.DEV) {
+    state.processList.forEach(item => {
+      console.log(
+        'File:', item.image.name, `${(item.image.size / 1024 / 1024).toFixed(2)}MB`,
+        '\nDateTime:', item.exif?.DateTime?.description,
+        '\nModel:', item.exif?.Model?.description,
+        '\nMake:', item.exif?.Make?.description,
+        '\nLensModel:', item.exif?.LensModel?.description,
+        '\nFocalLengthIn35mmFilm:', item.exif?.FocalLengthIn35mmFilm?.description,
+        '\nFNumber:', item.exif?.FNumber?.description,
+        '\nExposureTime:', item.exif?.ExposureTime?.description,
+        '\nISOSpeedRatings:', item.exif?.ISOSpeedRatings?.description,
+      )
+    })
+  }
+  process(state.processList)
+}
+
+const process = async (list: ProcessItem[]) => {
+  // const withIndexList = list.map((item, index) => ({ item, index }))
+  // const iteratorFn = async ({ item, index } : { item: ProcessItem, index: number }) => {
+  //   return { index }
+  // }
+  // for await (const { index } of asyncPool(3, withIndexList, iteratorFn)) {
+  //   console.log(index)
+  // }
+}
+
+const onErrorIsNotSupportFileAlertLeave = () => {
+  state.errorFileNotSupport = false
+}
+
+const onUploadImage = async (files: FileList) => {
   const list: ProcessItem[] = []
   const len = files.length
   for (let i = 0; i < len; i += 1) {
     const file = files.item(i)
     if (file !== null) {
-      list.push({ image: file, status: 'waiting' })
+      list.push({ image: file, status: 'waiting', exif: null })
     }
   }
+
   state.processList = list
   state.hideAppPhoto = true
+
+  start(list)
 }
 
 const onBackToAddPhoto = () => {
@@ -54,21 +102,21 @@ const downloadAll = () => {
 <template>
   <div class="alert-list">
     <NAlert
-      v-if="state.errorIsNotImage"
+      v-if="state.errorFileNotSupport"
       class="alert"
       title="Error"
       type="error"
       closable
       :bordered="false"
-      @after-leave="onErrorIsNotImageAlertLeave"
+      @after-leave="onErrorIsNotSupportFileAlertLeave"
     >
-      上传的文件中包含非图片文件
+      选择的图片中包含不支持的文件（不是图片 or 不是 jpg 格式的图片）
     </NAlert>
   </div>
   <div class="main">
     <AddPhoto
       v-if="!state.hideAppPhoto"
-      @error-is-not-image="() => { state.errorIsNotImage = true }"
+      @error-file-not-support="() => { state.errorFileNotSupport = true }"
       @upload-images="onUploadImage"
     />
     <ProcessList

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ArrowBackOutlined, DownloadOutlined } from '@vicons/material'
 import { Icon } from '@vicons/utils'
-import { NButton } from 'naive-ui'
+import { NButton, NSpin } from 'naive-ui'
 import type { ProcessItem } from '../App.vue'
 
 const props = defineProps<{ processList: ProcessItem[] }>()
@@ -15,13 +15,17 @@ const emits = defineEmits<{
 <template>
   <div class="process-list">
     <div class="process-item" v-for="(item, itemIndex) in props.processList">
-      <div class="process-item-name">{{ item.image.name }}</div>
+      <div class="process-item-name">
+        <span>{{ item.image.name }}</span>
+      </div>
       <div
         v-if="item.status !== 'done'"
         class="process-item-status"
         :data-status="item.status"
       >
-        {{ item.status }}...
+        <NSpin v-if="item.status === 'processing'" :size="16" />
+        <span v-else-if="item.status === 'waiting'">准备中...</span>
+        <span v-else-if="item.status === 'failed'">失败</span>
       </div>
       <NButton
         v-else
@@ -94,12 +98,32 @@ const emits = defineEmits<{
 .process-item {
   display: flex;
   flex-direction: row;
+  align-items: center;
 
   padding: 16px;
 }
 
 .process-item-name {
   flex: 1;
+
+  width: 0;
+  padding-right: 1em;
+
+  display: flex;
+  align-items: center;
+
+  & > span {
+    display: inline-block;
+    width: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+}
+
+.process-item-status {
+  display: flex;
+  align-items: center;
 }
 
 .process-item-status[data-status=waiting] {
@@ -112,6 +136,10 @@ const emits = defineEmits<{
 
 .process-item-status[data-status=done] {
   color: #30aa6a;
+}
+
+.process-item-status[data-status=failed] {
+  color: #de3f5c;
 }
 
 .gap-v {

@@ -7,23 +7,24 @@ import { NButton } from 'naive-ui'
 const emits = defineEmits<{
   (event: 'upload-images', images: FileList): void
   (event: 'error-no-file'): void
-  (event: 'error-is-not-image'): void
+  (event: 'error-file-not-support'): void
 }>()
 
 const addPhotoArea = ref<HTMLDivElement | null>(null)
 const addPhotoTip = ref<HTMLDivElement | null>(null)
+const inputFile = ref<HTMLInputElement | null>(null)
 
-const checkIfSomeFileIsNotImage = (files: FileList) => {
+const checkIfSomeFileIsNotSupport = (files: FileList) => {
   const len = files.length
-  let someFileIsNotImage = false
+  let someFileIsNotSupport = false
   for (let i = 0; i < len; i += 1) {
     const file = files.item(i)
-    if (file !== null && !file.type.startsWith('image')) {
-      someFileIsNotImage = true
+    if (file !== null && (!file.type.startsWith('image') || !file.type.endsWith('jpeg'))) {
+      someFileIsNotSupport = true
       i = len
     }
   }
-  return someFileIsNotImage
+  return someFileIsNotSupport
 }
 
 const preventDefault = (event: DragEvent) => {
@@ -45,13 +46,23 @@ const hideCover = (event: DragEvent) => {
 const handleDropFile = (event: DragEvent) => {
   hideCover(event)
   if (event.dataTransfer !== null) {
-    const files = event.dataTransfer.files
-    if (checkIfSomeFileIsNotImage(files)) {
-      emits('error-is-not-image')
+    const { files } = event.dataTransfer
+    if (checkIfSomeFileIsNotSupport(files)) {
+      emits('error-file-not-support')
     } else {
       emits('upload-images', files)
     }
   }
+}
+
+const handleSelectFile = () => {
+  if (inputFile.value !== null && inputFile.value.files !== null) {
+    emits('upload-images', inputFile.value.files)
+  }
+}
+
+const onClickSelectFile = () => {
+  inputFile?.value?.click()
 }
 
 onMounted(() => {
@@ -59,12 +70,14 @@ onMounted(() => {
   addPhotoArea.value?.addEventListener('dragover', preventDefault)
   addPhotoArea.value?.addEventListener('dragleave', hideCover)
   addPhotoArea.value?.addEventListener('drop', handleDropFile)
+  inputFile.value?.addEventListener('change', handleSelectFile)
 })
 onUnmounted(() => {
   addPhotoArea.value?.removeEventListener('dragenter', showCover)
   addPhotoArea.value?.removeEventListener('dragover', preventDefault)
   addPhotoArea.value?.removeEventListener('dragleave', hideCover)
   addPhotoArea.value?.removeEventListener('drop', handleDropFile)
+  inputFile.value?.removeEventListener('change', handleSelectFile)
 })
 </script>
 
@@ -73,7 +86,12 @@ onUnmounted(() => {
     <div ref="addPhotoTip" class="tip">
       将图片拖拽至此处
       <p>或者</p>
-      <NButton round>
+      <NButton
+        ghost
+        round
+        type="success"
+        @click="onClickSelectFile"
+      >
         <template #icon>
           <Icon>
             <ImageOutlined />
@@ -81,8 +99,17 @@ onUnmounted(() => {
         </template>
         选择图片
       </NButton>
+      <div class="format-tip">
+        <small>仅支持 *.jpg 格式的图片</small>
+      </div>
     </div>
-
+    <input
+      ref="inputFile"
+      type="file"
+      class="input-file"
+      accept="image/jpeg"
+      multiple
+    />
   </div>
 </template>
 
@@ -102,10 +129,21 @@ onUnmounted(() => {
 
   text-align: center;
 }
+
 .dragging {
   border: 4px dashed #000;
 }
+
 .disable-pointer-events {
   pointer-events: none;
+}
+
+.input-file {
+  display: none;
+}
+
+.format-tip {
+  margin-top: .5em;
+  color: rgba(0, 0, 0, .6);
 }
 </style>
