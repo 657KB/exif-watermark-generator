@@ -7,14 +7,14 @@ import type { ProcessItem } from '../App.vue'
 const props = defineProps<{ processList: ProcessItem[] }>()
 const emits = defineEmits<{
   (event: 'back'): void
-  (event: 'download-item', index: number): void
+  (event: 'download-item', item: ProcessItem): void
   (event: 'download-all'): void
 }>()
 </script>
 
 <template>
   <div class="process-list">
-    <div class="process-item" v-for="(item, itemIndex) in props.processList">
+    <div class="process-item" v-for="item in props.processList">
       <div class="process-item-name">
         <span>{{ item.image.name }}</span>
       </div>
@@ -33,7 +33,7 @@ const emits = defineEmits<{
         quaternary
         type="success"
         size="small"
-        @click="() => emits('download-item', itemIndex)"
+        @click="() => emits('download-item', item)"
       >
         <template #icon>
           <Icon>
@@ -55,7 +55,7 @@ const emits = defineEmits<{
       返回选择其他图片
     </NButton>
     <div class="gap-h" />
-    <NButton
+    <!-- <NButton
       round
       secondary
       type="success"
@@ -68,7 +68,7 @@ const emits = defineEmits<{
         </Icon>
       </template>
       打包下载
-    </NButton>
+    </NButton> -->
   </div>
 </template>
 
@@ -107,6 +107,7 @@ const emits = defineEmits<{
   flex: 1;
 
   width: 0;
+  min-height: 28px;
   padding-right: 1em;
 
   display: flex;

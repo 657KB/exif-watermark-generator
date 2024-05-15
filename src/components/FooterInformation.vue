@@ -1,6 +1,6 @@
 <template>
   <footer>
-    <div>相框小白条 | EXIF Photo Frame</div>
+    <div>相片水印 | EXIF Watermark Generator</div>
     <div>Made by 657KB</div>
   </footer>
 </template>

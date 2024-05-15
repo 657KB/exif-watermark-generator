@@ -7,6 +7,8 @@ import AddPhoto from './components/AddPhoto.vue'
 import FooterInformation from './components/FooterInformation.vue'
 import ProcessList from './components/ProcessList.vue'
 import getEXIF from './util/exif'
+import { generateImageWithExifPhotoFrame } from './util/generate'
+import { downloadZip } from 'client-zip'
 
 type StateType = {
   errorFileNotSupport: boolean
@@ -18,6 +20,7 @@ export type ProcessItem = {
   image: File
   status: 'waiting' | 'processing' | 'done' | 'failed'
   exif: Tags | null
+  url: string | null
 }
 
 const state = reactive<StateType>({
@@ -58,13 +61,27 @@ const start = async (list: ProcessItem[]) => {
 }
 
 const process = async (list: ProcessItem[]) => {
-  // const withIndexList = list.map((item, index) => ({ item, index }))
-  // const iteratorFn = async ({ item, index } : { item: ProcessItem, index: number }) => {
-  //   return { index }
-  // }
-  // for await (const { index } of asyncPool(3, withIndexList, iteratorFn)) {
-  //   console.log(index)
-  // }
+  const withIndexList = list.map((item, index) => ({ item, index }))
+  const iteratorFn = async ({ item, index } : { item: ProcessItem, index: number }) => {
+    if (item.status !== 'failed') {
+      state.processList[index].status = 'processing'
+      try {
+        const url = await generateImageWithExifPhotoFrame(item.image, item.exif!)
+        return { index, url }
+      } catch (expection) {
+        console.error(expection)
+      }
+    }
+    return { index, url: null }
+  }
+  for await (const { index, url } of asyncPool(3, withIndexList, iteratorFn)) {
+    if (url !== null) {
+      state.processList[index].status = 'done'
+      state.processList[index].url = url
+    } else {
+      state.processList[index].status = 'failed'
+    }
+  }
 }
 
 const onErrorIsNotSupportFileAlertLeave = () => {
@@ -77,7 +94,7 @@ const onUploadImage = async (files: FileList) => {
   for (let i = 0; i < len; i += 1) {
     const file = files.item(i)
     if (file !== null) {
-      list.push({ image: file, status: 'waiting', exif: null })
+      list.push({ image: file, status: 'waiting', exif: null, url: null })
     }
   }
 
@@ -91,11 +108,16 @@ const onBackToAddPhoto = () => {
   state.hideAppPhoto = false
   state.processList = []
 }
-const downloadImage = () => {
-  //
+const downloadImage = (item: ProcessItem) => {
+  const link = document.createElement('a')
+  link.download = `new_${item.image.name}`
+  link.href = item.url!
+  link.click()
 }
 const downloadAll = () => {
-  //
+  const input = state.processList
+    .filter(({ status, url }) => status === 'done' && url !== null)
+    .map(({ url }) => fetch(url!))
 }
 </script>
 
@@ -128,6 +150,7 @@ const downloadAll = () => {
     />
   </div>
   <FooterInformation />
+  <div id="hidden" />
 </template>
 
 <style scoped>
@@ -148,5 +171,11 @@ const downloadAll = () => {
 
 .alert {
   min-width: 300px;
+}
+
+#hidden {
+  position: fixed;
+  left: 200vw;
+  top: 0;
 }
 </style>

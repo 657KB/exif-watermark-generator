@@ -22,3 +22,36 @@ body {
   min-width: 300px;
   min-height: 400px;
 }
+
+.generate-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.generate-row {
+  display: flex;
+  flex-direction: row;
+}
+
+.generate-footer {
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+}
+
+.generate-footer-text-primary {
+  color: #000;
+  font-family: MiSans, Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-weight: 600;
+}
+
+.generate-footer-text-secondary {
+  color: rgba(0, 0, 0, .4);
+  font-family: MiSans, Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-weight: 300;
+}
+
+.generate-footer-divider {
+  min-width: 2px;
+  border-radius: 2px;
+}

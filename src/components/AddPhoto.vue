@@ -6,7 +6,6 @@ import { NButton } from 'naive-ui'
 
 const emits = defineEmits<{
   (event: 'upload-images', images: FileList): void
-  (event: 'error-no-file'): void
   (event: 'error-file-not-support'): void
 }>()
 
@@ -19,16 +18,16 @@ const checkIfSomeFileIsNotSupport = (files: FileList) => {
   let someFileIsNotSupport = false
   for (let i = 0; i < len; i += 1) {
     const file = files.item(i)
-    if (file !== null && (!file.type.startsWith('image') || !file.type.endsWith('jpeg'))) {
-      someFileIsNotSupport = true
-      i = len
+    if (file !== null) {
+      const isImage = file.type.startsWith('image')
+      const isSupportedFormat = file.type.endsWith('jpeg') || file.type.endsWith('png')
+      if (!isImage || !isSupportedFormat) {
+        someFileIsNotSupport = true
+        i = len
+      }
     }
   }
   return someFileIsNotSupport
-}
-
-const preventDefault = (event: DragEvent) => {
-  event.preventDefault()
 }
 
 const showCover = (event: DragEvent) => {
@@ -67,14 +66,14 @@ const onClickSelectFile = () => {
 
 onMounted(() => {
   addPhotoArea.value?.addEventListener('dragenter', showCover)
-  addPhotoArea.value?.addEventListener('dragover', preventDefault)
+  addPhotoArea.value?.addEventListener('dragover', showCover)
   addPhotoArea.value?.addEventListener('dragleave', hideCover)
   addPhotoArea.value?.addEventListener('drop', handleDropFile)
   inputFile.value?.addEventListener('change', handleSelectFile)
 })
 onUnmounted(() => {
   addPhotoArea.value?.removeEventListener('dragenter', showCover)
-  addPhotoArea.value?.removeEventListener('dragover', preventDefault)
+  addPhotoArea.value?.removeEventListener('dragover', showCover)
   addPhotoArea.value?.removeEventListener('dragleave', hideCover)
   addPhotoArea.value?.removeEventListener('drop', handleDropFile)
   inputFile.value?.removeEventListener('change', handleSelectFile)
@@ -100,7 +99,7 @@ onUnmounted(() => {
         选择图片
       </NButton>
       <div class="format-tip">
-        <small>仅支持 *.jpg 格式的图片</small>
+        <small>支持的格式：*.jpg, *.png</small>
       </div>
     </div>
     <input
@@ -125,13 +124,14 @@ onUnmounted(() => {
   min-height: 160px;
 
   border-radius: 8px;
-  border: 4px dashed #ccc;
+  border: 4px dashed rgba(0, 0, 0, .24);
+;
 
   text-align: center;
 }
 
 .dragging {
-  border: 4px dashed #000;
+  border: 4px dashed rgba(0, 0, 0, .8);
 }
 
 .disable-pointer-events {
