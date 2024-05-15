@@ -8,7 +8,7 @@ import FooterInformation from './components/FooterInformation.vue'
 import ProcessList from './components/ProcessList.vue'
 import getEXIF from './util/exif'
 import { generateImageWithExifPhotoFrame } from './util/generate'
-import { downloadZip } from 'client-zip'
+// import { downloadZip } from 'client-zip'
 
 type StateType = {
   errorFileNotSupport: boolean
@@ -115,9 +115,9 @@ const downloadImage = (item: ProcessItem) => {
   link.click()
 }
 const downloadAll = () => {
-  const input = state.processList
-    .filter(({ status, url }) => status === 'done' && url !== null)
-    .map(({ url }) => fetch(url!))
+  // const input = state.processList
+  //   .filter(({ status, url }) => status === 'done' && url !== null)
+  //   .map(({ url }) => fetch(url!))
 }
 </script>
 
