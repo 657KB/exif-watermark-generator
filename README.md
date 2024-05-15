@@ -1,4 +1,4 @@
-# 相框小白条 | EXIF Photo Frame
+# 相片水印 | EXIF Watermark Generator
 
 TODO:
 
