@@ -1,74 +1,79 @@
 <script setup lang="ts">
-import { ArrowBackOutlined, DownloadOutlined } from '@vicons/material'
+import { ArrowBackOutlined, DownloadOutlined, ImageOutlined } from '@vicons/material'
 import { Icon } from '@vicons/utils'
-import { NButton, NSpin } from 'naive-ui'
+import { NButton, NProgress, NSpin } from 'naive-ui'
+import { reactive, watch } from 'vue'
+import { useThemeVars } from 'naive-ui'
 import type { ProcessItem } from '../App.vue'
 
+const themeVars = useThemeVars()
 const props = defineProps<{ processList: ProcessItem[] }>()
 const emits = defineEmits<{
   (event: 'back'): void
+  (event: 'preview-item', item: ProcessItem): void
   (event: 'download-item', item: ProcessItem): void
   (event: 'download-all'): void
 }>()
+const progress = reactive({ value: 0 })
+watch(props.processList, () => {
+  const finished = props.processList.filter(item => item.status === 'done' || item.status === 'failed').length
+  progress.value = finished / props.processList.length
+})
 </script>
 
 <template>
-  <div class="process-list">
-    <div class="process-item" v-for="item in props.processList">
-      <div class="process-item-name">
-        <span>{{ item.image.name }}</span>
+  <div>
+    <div class="process-list">
+      <div class="process-item" v-for="item in props.processList">
+        <div class="process-item-name">
+          <span>{{ item.image.name }}</span>
+        </div>
+        <div v-if="item.status !== 'done'" class="process-item-status" :data-status="item.status">
+          <NSpin v-if="item.status === 'processing'" :size="16" />
+          <span v-else-if="item.status === 'waiting'">准备中...</span>
+          <span v-else-if="item.status === 'failed'">失败</span>
+        </div>
+        <div v-else>
+          <NButton round quaternary type="info" size="small" @click="() => emits('preview-item', item)">
+            <template #icon>
+              <Icon>
+                <ImageOutlined />
+              </Icon>
+            </template>
+            查看
+          </NButton>
+          <NButton round quaternary type="success" size="small" @click="() => emits('download-item', item)">
+            <template #icon>
+              <Icon>
+                <DownloadOutlined />
+              </Icon>
+            </template>
+            下载
+          </NButton>
+        </div>
       </div>
-      <div
-        v-if="item.status !== 'done'"
-        class="process-item-status"
-        :data-status="item.status"
-      >
-        <NSpin v-if="item.status === 'processing'" :size="16" />
-        <span v-else-if="item.status === 'waiting'">准备中...</span>
-        <span v-else-if="item.status === 'failed'">失败</span>
-      </div>
-      <NButton
-        v-else
-        round
-        quaternary
-        type="success"
-        size="small"
-        @click="() => emits('download-item', item)"
-      >
+    </div>
+    <div class="gap-v" />
+    <div class="button-group">
+      <NButton round @click="() => emits('back')">
+        <template #icon>
+          <Icon>
+            <ArrowBackOutlined />
+          </Icon>
+        </template>
+        选择其他图片
+      </NButton>
+      <div class="gap-h" />
+      <NButton round secondary type="success" :disabled="processList.some(item => item.status !== 'done' && item.status !== 'failed')"
+        @click="() => emits('download-all')">
         <template #icon>
           <Icon>
             <DownloadOutlined />
           </Icon>
         </template>
-        下载
+        打包下载
       </NButton>
     </div>
-  </div>
-  <div class="gap-v" />
-  <div class="button-group">
-    <NButton round @click="() => emits('back')">
-      <template #icon>
-        <Icon>
-          <ArrowBackOutlined />
-        </Icon>
-      </template>
-      返回选择其他图片
-    </NButton>
-    <div class="gap-h" />
-    <!-- <NButton
-      round
-      secondary
-      type="success"
-      :disabled="processList.some(item => item.status !== 'done')"
-      @click="() => emits('download-all')"
-    >
-      <template #icon>
-        <Icon>
-          <DownloadOutlined />
-        </Icon>
-      </template>
-      打包下载
-    </NButton> -->
   </div>
 </template>
 
@@ -113,7 +118,7 @@ const emits = defineEmits<{
   display: flex;
   align-items: center;
 
-  & > span {
+  &>span {
     display: inline-block;
     width: 100%;
     overflow: hidden;
@@ -155,6 +160,7 @@ const emits = defineEmits<{
   visibility: hidden;
   pointer-events: none;
 }
+
 .download-button[data-visible=true] {
   visibility: visible;
   pointer-events: all;

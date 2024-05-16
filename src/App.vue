@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { saveAs } from 'file-saver'
 import { NAlert } from 'naive-ui'
 import { reactive } from 'vue'
 import { Tags } from 'exifreader'
@@ -7,8 +8,8 @@ import AddPhoto from './components/AddPhoto.vue'
 import FooterInformation from './components/FooterInformation.vue'
 import ProcessList from './components/ProcessList.vue'
 import getEXIF from './util/exif'
-import { generateImageWithExifPhotoFrame } from './util/generate'
-// import { downloadZip } from 'client-zip'
+import { generateImageWithExifPhotoFrame } from './util/generator'
+import JSZip from 'jszip'
 
 type StateType = {
   errorFileNotSupport: boolean
@@ -20,7 +21,7 @@ export type ProcessItem = {
   image: File
   status: 'waiting' | 'processing' | 'done' | 'failed'
   exif: Tags | null
-  url: string | null
+  blob: Blob | null
 }
 
 const state = reactive<StateType>({
@@ -62,22 +63,22 @@ const start = async (list: ProcessItem[]) => {
 
 const process = async (list: ProcessItem[]) => {
   const withIndexList = list.map((item, index) => ({ item, index }))
-  const iteratorFn = async ({ item, index } : { item: ProcessItem, index: number }) => {
+  const iteratorFn = async ({ item, index }: { item: ProcessItem, index: number }) => {
     if (item.status !== 'failed') {
       state.processList[index].status = 'processing'
       try {
-        const url = await generateImageWithExifPhotoFrame(item.image, item.exif!)
-        return { index, url }
+        const blob = await generateImageWithExifPhotoFrame(item.image, item.exif!)
+        return { index, blob }
       } catch (expection) {
         console.error(expection)
       }
     }
-    return { index, url: null }
+    return { index, blob: null }
   }
-  for await (const { index, url } of asyncPool(3, withIndexList, iteratorFn)) {
-    if (url !== null) {
+  for await (const { index, blob } of asyncPool(3, withIndexList, iteratorFn)) {
+    if (blob !== null) {
       state.processList[index].status = 'done'
-      state.processList[index].url = url
+      state.processList[index].blob = blob
     } else {
       state.processList[index].status = 'failed'
     }
@@ -94,60 +95,52 @@ const onUploadImage = async (files: FileList) => {
   for (let i = 0; i < len; i += 1) {
     const file = files.item(i)
     if (file !== null) {
-      list.push({ image: file, status: 'waiting', exif: null, url: null })
+      list.push({ image: file, status: 'waiting', exif: null, blob: null })
     }
   }
 
   state.processList = list
   state.hideAppPhoto = true
 
-  start(list)
+  setTimeout(() => start(list), 300)
 }
 
 const onBackToAddPhoto = () => {
   state.hideAppPhoto = false
   state.processList = []
 }
+
 const downloadImage = (item: ProcessItem) => {
-  const link = document.createElement('a')
-  link.download = `new_${item.image.name}`
-  link.href = item.url!
-  link.click()
+  saveAs(item.blob!, item.image.name)
 }
+
 const downloadAll = () => {
-  // const input = state.processList
-  //   .filter(({ status, url }) => status === 'done' && url !== null)
-  //   .map(({ url }) => fetch(url!))
+  const zip = new JSZip()
+  state.processList.forEach(({ image, status, blob }) => {
+    if (status === 'done') {
+      zip.file(image.name, blob!)
+    }
+  })
+  zip.generateAsync({ type: 'blob' }).then(function (content) {
+    saveAs(content, `photos_${Date.now()}.zip`)
+  })
 }
 </script>
 
 <template>
   <div class="alert-list">
-    <NAlert
-      v-if="state.errorFileNotSupport"
-      class="alert"
-      title="Error"
-      type="error"
-      closable
-      :bordered="false"
-      @after-leave="onErrorIsNotSupportFileAlertLeave"
-    >
+    <NAlert v-if="state.errorFileNotSupport" class="alert" title="Error" type="error" closable :bordered="false"
+      @after-leave="onErrorIsNotSupportFileAlertLeave">
       选择的图片中包含不支持的文件（不是图片 or 不是 jpg 格式的图片）
     </NAlert>
   </div>
   <div class="main">
-    <AddPhoto
-      v-if="!state.hideAppPhoto"
-      @error-file-not-support="() => { state.errorFileNotSupport = true }"
-      @upload-images="onUploadImage"
-    />
-    <ProcessList
-      v-if="state.hideAppPhoto"
-      :process-list="state.processList"
-      @back="onBackToAddPhoto"
-      @download-item="downloadImage"
-      @download-all="downloadAll"
-    />
+    <Transition name="main" mode="out-in">
+      <AddPhoto v-if="!state.hideAppPhoto" @error-file-not-support="() => { state.errorFileNotSupport = true }"
+        @upload-images="onUploadImage" />
+      <ProcessList v-else :process-list="state.processList" @back="onBackToAddPhoto" @download-item="downloadImage"
+        @download-all="downloadAll" />
+    </Transition>
   </div>
   <FooterInformation />
   <div id="hidden" />
@@ -177,5 +170,21 @@ const downloadAll = () => {
   position: fixed;
   left: 200vw;
   top: 0;
+}
+
+.main-move,
+.main-enter-active,
+.main-leave-active {
+  transition: all 0.15s ease;
+}
+
+.main-enter-from,
+.main-leave-to {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.main-leave-active {
+  position: absolute;
 }
 </style>

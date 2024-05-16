@@ -85,12 +85,7 @@ onUnmounted(() => {
     <div ref="addPhotoTip" class="tip">
       将图片拖拽至此处
       <p>或者</p>
-      <NButton
-        ghost
-        round
-        type="success"
-        @click="onClickSelectFile"
-      >
+      <NButton ghost round type="success" @click="onClickSelectFile">
         <template #icon>
           <Icon>
             <ImageOutlined />
@@ -102,13 +97,7 @@ onUnmounted(() => {
         <small>支持的格式：*.jpg, *.png</small>
       </div>
     </div>
-    <input
-      ref="inputFile"
-      type="file"
-      class="input-file"
-      accept="image/jpeg"
-      multiple
-    />
+    <input ref="inputFile" type="file" class="input-file" accept="image/jpeg" multiple />
   </div>
 </template>
 
@@ -125,7 +114,6 @@ onUnmounted(() => {
 
   border-radius: 8px;
   border: 4px dashed rgba(0, 0, 0, .24);
-;
 
   text-align: center;
 }

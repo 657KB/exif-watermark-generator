@@ -1,5 +1,6 @@
 import { Tags } from 'exifreader'
-import { toJpeg } from 'html-to-image'
+import { toBlob } from 'html-to-image'
+import imageCompression from 'browser-image-compression'
 
 const createImage = (file: File): Promise<HTMLImageElement> => {
   return new Promise((resolve, reject) => {
@@ -70,6 +71,15 @@ const createLogoImage = async (rawMake: string): Promise<HTMLImageElement> => {
       resolve(image)
     }
   })
+}
+
+const compress = (blob: Blob, filename: string, type: string, size: number) => {
+  const options = {
+    maxSizeMB: size * 1.2 / 1024 / 1024,
+    useWebWorker: true,
+  }
+  const file = new File([blob!], filename, { type })
+  return imageCompression(file, options)
 }
 
 export const generateImageWithExifPhotoFrame = async (imageFile: File, exif: Tags) => {
@@ -159,11 +169,13 @@ export const generateImageWithExifPhotoFrame = async (imageFile: File, exif: Tag
 
   document.getElementById('hidden')?.appendChild(container)
 
-  return toJpeg(container, { quality: 0.5 }).then(url => {
-    document.getElementById('hidden')?.firstChild?.remove()
-    return url
-  }).catch(error => {
-    console.error(error)
-    return null
-  })
+  return toBlob(container)
+    .then(blob => {
+      document.getElementById('hidden')?.firstChild?.remove()
+      URL.revokeObjectURL(image.src)
+      return compress(blob!, imageFile.name, imageFile.type, imageFile.size)
+    }).catch(error => {
+      console.error(error)
+      return null
+    })
 }
