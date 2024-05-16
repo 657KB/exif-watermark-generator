@@ -1,12 +1,10 @@
 <script setup lang="ts">
 import { ArrowBackOutlined, DownloadOutlined, ImageOutlined } from '@vicons/material'
 import { Icon } from '@vicons/utils'
-import { NButton, NProgress, NSpin } from 'naive-ui'
+import { NButton, NSpin } from 'naive-ui'
 import { reactive, watch } from 'vue'
-import { useThemeVars } from 'naive-ui'
 import type { ProcessItem } from '../App.vue'
 
-const themeVars = useThemeVars()
 const props = defineProps<{ processList: ProcessItem[] }>()
 const emits = defineEmits<{
   (event: 'back'): void
