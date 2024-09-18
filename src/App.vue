@@ -15,6 +15,7 @@ type StateType = {
   errorFileNotSupport: boolean
   hideAppPhoto: boolean
   processList: ProcessItem[]
+  previewImageBlobUrl: string | null
 }
 
 export type ProcessItem = {
@@ -28,6 +29,7 @@ const state = reactive<StateType>({
   errorFileNotSupport: false,
   hideAppPhoto: false,
   processList: [],
+  previewImageBlobUrl: null,
 })
 
 const getAllExif = async (list: ProcessItem[]) => {
@@ -110,6 +112,15 @@ const onBackToAddPhoto = () => {
   state.processList = []
 }
 
+const onPreviewItem = (item: ProcessItem) => {
+  try {
+    const tempUrl = (window.URL || window.webkitURL).createObjectURL(item.blob!)
+    open(tempUrl)
+  } catch (err) {
+    console.error(err)
+  }
+}
+
 const downloadImage = (item: ProcessItem) => {
   saveAs(item.blob!, item.image.name)
 }
@@ -139,10 +150,15 @@ const downloadAll = () => {
       <AddPhoto v-if="!state.hideAppPhoto" @error-file-not-support="() => { state.errorFileNotSupport = true }"
         @upload-images="onUploadImage" />
       <ProcessList v-else :process-list="state.processList" @back="onBackToAddPhoto" @download-item="downloadImage"
-        @download-all="downloadAll" />
+        @download-all="downloadAll" @preview-item="onPreviewItem" />
     </Transition>
   </div>
   <FooterInformation />
+  <!-- <Transition name="preview">
+    <div class="preview-modal">
+      <img :src="state.previewImageBlobUrl" alt="">
+    </div>
+  </Transition> -->
   <div id="hidden" />
 </template>
 
